@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # Core application
+  ingress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: sysnet-ingress
+    environment:
+      - ENV=development
+      - LOG_LEVEL=DEBUG
+      - INGRESS_HOST=0.0.0.0
+      - INGRESS_PORT=9000
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/data
+      - ./logs:/var/log/sysnet
+    networks:
+      - sysnet
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # Observability Stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sysnet-prometheus
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - sysnet
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sysnet-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - sysnet
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # Optional: Data persistence
+  postgres:
+    image: postgres:16-alpine
+    container_name: sysnet-postgres
+    environment:
+      - POSTGRES_DB=sysnet
+      - POSTGRES_USER=sysnet
+      - POSTGRES_PASSWORD=sysnet_local_dev_only
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - sysnet
+    restart: unless-stopped
+    profiles:
+      - with-persistence
+
+  # Optional: Message broker for transport layer
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: sysnet-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=sysnet
+      - RABBITMQ_DEFAULT_PASS=sysnet_local_dev_only
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - sysnet
+    restart: unless-stopped
+    profiles:
+      - with-transport
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  postgres_data:
+  rabbitmq_data:
+
+networks:
+  sysnet:
+    driver: bridge

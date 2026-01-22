@@ -1,0 +1,140 @@
+# Default Configuration for System Network Scaling Lab
+
+application:
+  name: system-network-scaling
+  version: 0.1.0
+  environment: development
+  debug: false
+  log_level: INFO
+
+ingress:
+  # External data ingestion configuration
+  host: "127.0.0.1"
+  port: 9000
+  buffer_size: 10000           # Max messages before backpressure
+  batch_size: 100              # Batch size for internal processing
+  validation:
+    strict_ordering: true      # Enforce strict sequence ordering
+    timestamp_tolerance_ms: 100 # Allow timestamp jitter within tolerance
+    unknown_symbols_action: quarantine  # quarantine|ignore|fail
+
+normalization:
+  # Data normalization and transformation
+  canonical_timestamp_precision: nanosecond  # nanosecond|microsecond|millisecond
+  numeric_precision: 8                        # Decimal places for prices/quantities
+  unknown_vendor_action: quarantine           # quarantine|ignore|fail
+
+transport:
+  # Message transport layer configuration
+  type: bounded_queue        # bounded_queue|ring_buffer
+  max_size: 50000
+  fan_out: true              # Enable multi-consumer support
+  backpressure_handling: propagate  # propagate|drop_oldest|block
+
+consumers:
+  # Consumer configurations
+  - name: realtime_analytics
+    enabled: true
+    type: stream_processor
+    failure_mode: isolate    # isolate|cascade
+    
+  - name: persistence
+    enabled: true
+    type: persistent_store
+    storage_path: /data/local
+    batch_commit_interval_ms: 1000
+    failure_mode: isolate
+    
+  - name: monitoring
+    enabled: true
+    type: metrics_aggregator
+    failure_mode: isolate
+
+observability:
+  # Monitoring, logging, and tracing
+  metrics:
+    enabled: true
+    port: 8000
+    prefix: sysnet
+    collectors:
+      - ingress_throughput
+      - latency_percentiles
+      - queue_depth
+      - consumer_lag
+      - validation_failures
+      
+  logging:
+    level: INFO
+    format: json              # json|text
+    structured: true
+    output_destinations:
+      - stdout
+      - file
+    file_path: /var/log/sysnet
+    retention_days: 30
+    
+  tracing:
+    enabled: false
+    export_endpoint: http://localhost:4317
+    sample_rate: 0.1          # 10% sampling by default
+
+performance:
+  # Resource optimization and tuning
+  cpu_affinity:
+    enabled: false
+    ingress_cores: []         # Pin ingress to specific cores
+    compute_cores: []
+    
+  network:
+    batch_window_ms: 10       # Milliseconds to wait before sending batch
+    batch_max_size: 1000
+    buffer_size: 65536
+    tcp_nodelay: true
+    
+  memory:
+    preallocate: true
+    max_queue_memory_mb: 2048
+
+security:
+  # Trust boundaries and validation
+  tls:
+    enabled: false
+    cert_path: /etc/sysnet/certs/tls.crt
+    key_path: /etc/sysnet/certs/tls.key
+    
+  authentication:
+    enabled: false
+    type: token              # token|mtls
+    
+  data_validation:
+    treat_external_as_untrusted: true
+    validate_before_storage: true
+    quarantine_failed_records: true
+
+scaling:
+  # Scaling strategy and decision points
+  strategy: constraint_driven
+  stages:
+    - name: local_optimization
+      actions:
+        - cpu_pinning
+        - reduced_allocation_hot_path
+        - network_tuning
+        
+    - name: parallelization
+      actions:
+        - shard_by_feed
+        - isolate_latency_paths
+        - thread_pool_tuning
+        
+    - name: distributed_components
+      actions:
+        - cloud_burst_capacity
+        - redundancy_layer
+        - replay_service
+
+cloud:
+  # Cloud resource configuration (optional)
+  provider: none             # none|aws|gcp|azure
+  burst_enabled: false
+  redundancy_enabled: false
