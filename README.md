@@ -1,4 +1,4 @@
-System & Network Scaling Lab
+# system-network-scaling
 
 This repository is a hands-on lab focused on building reliable, observable,
 and security-conscious systems for data ingestion, monitoring, and
@@ -38,8 +38,10 @@ Design priorities include:
 The repository documents architectural decisions, tradeoffs, and failure
 modes alongside implementation details. The intent is to demonstrate not
 just *what* works, but *why* certain choices were made and where the limits
-are.> Detailed design notes will be expanded into the `docs/` directory as the system evolves.
+are.
 
+Detailed design notes will be expanded into the `docs/` directory as the
+system evolves.
 
 ## Architecture
 
@@ -47,5 +49,4 @@ Detailed system design, data flow, scaling strategy, and security
 considerations are documented here:
 
 - [`docs/architecture.md`](docs/architecture.md)
-
 
