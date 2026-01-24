@@ -1,21 +1,18 @@
 package ingress
 
-// Validator validates inbound ingress events
+// Validator defines the contract for ingress validation.
 type Validator interface {
-    Validate(event *IngressEvent) error
+	Validate(event *IngressEvent) error
 }
 
-// Normalizer transforms validated ingress events into canonical form
+// Normalizer defines the contract for transforming ingress events
+// into canonical internal representations.
 type Normalizer interface {
-    Normalize(event *IngressEvent) (*IngressEvent, error)
+	Normalize(event *IngressEvent) (*IngressEvent, error)
 }
 
-// Dispatcher hands normalized events to downstream systems
+// Dispatcher defines the contract for handing ingress events
+// to downstream systems.
 type Dispatcher interface {
-    Dispatch(event *IngressEvent) error
-}
-
-// Processor defines the full ingress lifecycle
-type Processor interface {
-    Process(event *IngressEvent) error
+	Dispatch(event *IngressEvent) error
 }
